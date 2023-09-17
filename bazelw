@@ -1,38 +1,56 @@
-# This is known as a composite action
-# "https://docs.github.com/en/actions/creating-actions/creating-a-composite-action"
-name: 'Hello World'
-description: 'Greet someone'
-inputs:
-  who-to-greet:  # id of input
-    description: 'Who to greet'
-    required: true
-    default: 'World'
-  github-token:
-    description: 'GitHub Token as provided by secrets'
-    default: ${{ github.token }}
-    required: true
-outputs:
-  random-number:
-    description: "Random number"
-    value: ${{ steps.random-number-generator.outputs.random-number }}
-runs:
-  using: "composite"
-  steps:
-    - uses: aws-actions/configure-aws-credentials@master
-      with:
-        role-to-assume: arn:aws:iam::283990011241:role/GitHubAlBlue
-        aws-region: us-east-1
-    - name: Display Identity
-      run: aws sts get-caller-identity
-      shell: bash
-    - name: output
-      run: echo $GITHUB_EVENT_PATH && cat $GITHUB_EVENT_PATH
-      shell: bash
+#!/bin/bash
+set -e
 
-    - name: set_env
-      uses: crazy-max/ghaction-github-runtime@v3
-    - name: test
-      run: $GITHUB_ACTION_PATH/test.sh
-      shell: bash
-    - run: echo Hello ${{ inputs.who-to-greet }}.
-      shell: bash
+SCRIPTPATH="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"
+BAZEL_PROFILE_PATH=""
+BAZEL_PROFILE_NAME=""
+
+__upload_gh_profile() {
+  local GITHUB_JOB="${GITHUB_JOB:-}"
+  local ENV_PATH="/tmp/${GITHUB_JOB}.action_env.sh" 
+  [[ -e "${ENV_PATH}" ]] || return
+  source ${ENV_PATH}
+  export INPUT_NAME=$GITHUB_JOB.$BAZEL_PROFILE_NAME
+  export INPUT_PATH=$BAZEL_PROFILE_PATH
+  export INPUT_RETENTIONDAYS=90
+  node $BAZEL_PROFILE_ROOT/upload-artifact/index.js
+}
+
+__bazel_exit_trap() {
+  __upload_gh_profile
+}
+
+trap __bazel_exit_trap EXIT
+
+__bazel_main() {
+  # Bazel next to this file
+  local CMD_NAME="$(basename $0)"
+  local CMD="${SCRIPTPATH}/$CMD_NAME.og"
+
+  if [[ ! -e $CMD ]]; then
+    echo "[WARN] Missing $CMD_NAME"
+    CMD=$(which $CMD_NAME)
+  fi
+
+  BAZEL_PROFILE_NAME=bazel-profiles-"$(date +"%s")"
+  export BAZEL_PROFILE_PATH=/tmp/$BAZEL_PROFILE_NAME
+
+  local ARGS=("${CMD}")
+  local PARSE_PROFILE=0
+  for ARG in "$@"; do
+    if [[ "$ARG" =~ --profile= ]]; then
+      continue
+    elif [[ "$ARG" =~ --profile ]]; then
+      PARSE_PROFILE=1
+      continue
+    elif [[ $PARSE_PROFILE -eq 1 ]]; then
+      PARSE_PROFILE=0
+      continue
+    fi
+    ARGS+=("${ARG}")
+  done
+  ARGS+=("--profile=$BAZEL_PROFILE_PATH")
+  (exec "${ARGS[@]}")
+}
+
+__bazel_main "$@"
