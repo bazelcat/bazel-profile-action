@@ -337,3 +337,12 @@ proprietary programs.  If your program is a subroutine library, you may
 consider it more useful to permit linking proprietary applications with the
 library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.
+
+
+## Dependencies
+
+upload-artifact 
+
+This project bundles "upload-artifact" in the directory "upload-artifact/"
+which is licensed under The MIT License (MIT) copyright 2018 Github, Inc. and
+contributors

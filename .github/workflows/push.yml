@@ -1,0 +1,30 @@
+name: Push
+run-name: ${{ github.actor }} push workflow
+on: [push]
+jobs:
+  bazelcat_test_job_linux:
+    runs-on: ubuntu-latest
+    name: A bazelcat test job
+    # Per: https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - id: foo
+        uses: ./
+      - run: cd examples && bazel build :x
+        shell: bash
+
+  bazelcat_test_job_mac:
+    name: A bazelcat test job macOS
+    runs-on: macos-12
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - id: foo
+        uses: ./
+      - run: cd examples && bazel build :x
+        shell: bash
