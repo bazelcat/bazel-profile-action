@@ -1,0 +1,11 @@
+# Copyright 2023 blzventures llc
+name: "Bazelcat Configure"
+description: "Configures Bazel"
+runs:
+  using: "composite"
+  steps:
+    - name: set_env
+      uses: crazy-max/ghaction-github-runtime@v3
+    - name: bazel_configure
+      run: $GITHUB_ACTION_PATH/bazel_configure.sh
+      shell: bash

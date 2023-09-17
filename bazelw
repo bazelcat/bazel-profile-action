@@ -1,0 +1,38 @@
+# This is known as a composite action
+# "https://docs.github.com/en/actions/creating-actions/creating-a-composite-action"
+name: 'Hello World'
+description: 'Greet someone'
+inputs:
+  who-to-greet:  # id of input
+    description: 'Who to greet'
+    required: true
+    default: 'World'
+  github-token:
+    description: 'GitHub Token as provided by secrets'
+    default: ${{ github.token }}
+    required: true
+outputs:
+  random-number:
+    description: "Random number"
+    value: ${{ steps.random-number-generator.outputs.random-number }}
+runs:
+  using: "composite"
+  steps:
+    - uses: aws-actions/configure-aws-credentials@master
+      with:
+        role-to-assume: arn:aws:iam::283990011241:role/GitHubAlBlue
+        aws-region: us-east-1
+    - name: Display Identity
+      run: aws sts get-caller-identity
+      shell: bash
+    - name: output
+      run: echo $GITHUB_EVENT_PATH && cat $GITHUB_EVENT_PATH
+      shell: bash
+
+    - name: set_env
+      uses: crazy-max/ghaction-github-runtime@v3
+    - name: test
+      run: $GITHUB_ACTION_PATH/test.sh
+      shell: bash
+    - run: echo Hello ${{ inputs.who-to-greet }}.
+      shell: bash
