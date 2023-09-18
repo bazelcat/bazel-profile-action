@@ -37,6 +37,7 @@ __bazel_main() {
 
   local ARGS=("${CMD}")
   local PARSE_PROFILE=0
+  local ADDED=0
   for ARG in "$@"; do
     if [[ "$ARG" =~ --profile= ]]; then
       continue
@@ -46,10 +47,17 @@ __bazel_main() {
     elif [[ $PARSE_PROFILE -eq 1 ]]; then
       PARSE_PROFILE=0
       continue
+    elif [[ $ADDED -eq 0 ]] && [[ $ARG == "--" ]]; then
+      ARGS+=("--profile=$BAZEL_PROFILE_PATH")
+      ADDED=1
     fi
+
     ARGS+=("${ARG}")
   done
-  ARGS+=("--profile=$BAZEL_PROFILE_PATH")
+
+  if [[ $ADDED -eq 0 ]]; then 
+    ARGS+=("--profile=$BAZEL_PROFILE_PATH")
+  fi
   (exec "${ARGS[@]}")
 }
 
